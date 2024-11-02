@@ -33,6 +33,19 @@ The design is motivated by the following guidelines:
 The language should be strong enough that the compiler and run time can be
 written in itself.
 
+Go 是一种新的系统编程语言，旨在作为 Google 内部 C++ 的替代品。其主要目的是为编译程序（如服务器和分布式系统）提供一个高效且生产力高的编程环境。
+设计动机如下：
+非常快速的编译（目标是每秒编译100万行代码）；瞬时增量编译
+过程式
+强类型
+简洁的语法，避免重复
+少量的、正交的、通用的概念
+支持线程和进程间通信
+垃圾回收
+用 Go 编写的容器库
+合理的效率（接近 C 水平）
+语言应足够强大，以便编译器和运行时可以用其自身编写。【所以golang后期就是自举的，自己实现自己，但是第一个版本的golang编译器肯定还是要c来实现】
+
 
 Modularity, identifiers and scopes
 ----
@@ -50,6 +63,16 @@ Because there are no header files, all identifiers in a package are either
 declared explicitly within the package or arise from an import statement.
 
 Scoping is essentially the same as in C.
+
+模块化、标识符和作用域
+一个 Go 程序由一个或多个 包 组成，这些包是单独编译的，但不是独立的。单个包可以通过标记为导出的方式使单个标识符对其他文件可见；没有“头文件”。
+
+包收集类型、常量、函数等到一个命名实体中，该实体可以导出以使其成员在另一个编译单元中使用。
+
+因为没有头文件，所以包中的所有标识符要么在包内显式声明，要么通过 import 语句引入。
+
+作用域基本上与 C 相同。
+
 
 
 Program structure
@@ -69,6 +92,15 @@ If any package within the program
 contains a function init(), that function will be executed
 before main.main() is called.  The details of initialization are
 still under development.
+
+程序结构
+一个编译单元（通常是一个源文件）由一个包说明符、导入声明和其他声明组成。文件顶层没有语句。
+
+一个程序由多个包组成。按惯例，一个包，默认名为 main，是执行的起点。它包含一个函数，也叫 main，这是运行时系统调用的第一个函数。
+
+如果程序中的任何包包含一个函数 init()，则在调用 main.main() 之前将执行该函数。初始化的细节仍在开发中。
+
+
 
 
 Typing, polymorphism, and object-orientation
@@ -102,6 +134,17 @@ Go has no explicit notion of type parameters or templates.  Instead,
 containers (such as stacks, lists, etc.) are implemented through the
 use of abstract operations on interface types or polymorphic values.
 
+类型、多态和面向对象
+Go 程序是强类型的。某些值也可以是多态的。语言提供了机制以安全地使用这些多态值。
+
+接口类型，基于具有方法的结构，提供了支持面向对象编程的机制。不同的接口类型是相互独立的，不需要显式的层次结构（如通过相应类型声明显式指定的单继承或多继承）。接口类型仅定义实现必须提供的一组方法。因此，接口和实现严格分离。
+
+通过将方法与结构关联来实现接口。如果一个结构实现了接口的所有方法，它就实现了该接口，因此可以在需要该接口的地方使用。除非通过接口类型的变量使用，否则方法总是可以静态绑定的（它们不是“虚拟”的），并且与普通函数相比不会产生运行时开销。
+
+Go 没有显式的类、子类或继承概念。这些概念可以通过函数、结构、关联方法和接口在 Go 中轻松建模。
+
+Go 没有显式的类型参数或模板。作为代替，容器（如堆栈、列表等）通过对接口类型或多态值的抽象操作来实现。
+
 
 Pointers and garbage collection
 ----
@@ -113,6 +156,7 @@ any other variable; such a pointer is obtained by "taking the
 address" of that variable.  Variables are automatically reclaimed when
 they are no longer accessible.  There is no pointer arithmetic in Go.
 
+变量可以自动分配（在进入变量的作用域时）或显式地在堆上分配。指针用于引用堆分配的变量。指针也可以用来指向其他任何变量；这样的指针是通过“取该变量的地址”获得的。变量在不再可访问时自动回收。Go 中没有指针运算。
 
 Functions
 ----
@@ -120,6 +164,10 @@ Functions
 Functions contain declarations and statements.  They may be
 recursive.  Functions may be anonymous and appear as
 literals in expressions.
+
+函数
+函数包含声明和语句。它们可以是递归的。函数可以是匿名的，并作为表达式的文字出现。
+
 
 
 Multithreading and channels
@@ -129,6 +177,9 @@ Go supports multithreaded programming directly. A function may
 be invoked as a parallel thread of execution.  Communication and
 synchronization is provided through channels and their associated
 language support.
+
+多线程和通道
+Go 直接支持多线程编程。函数可以作为并行线程执行。通信和同步通过通道及其相关语言支持来提供。
 
 
 Values and references
@@ -144,6 +195,10 @@ particular, this is different from C.
 There is also a built-in string type, which represents immutable
 strings of bytes.
 
+值和引用
+所有对象都有值语义，但它们的内容可以通过指向同一对象的不同指针访问。例如，调用一个带有数组的函数时，数组是按值传递的，可能是通过复制来实现。要传递引用，必须显式传递指向数组的指针。特别是对于数组，这与 C 不同。
+
+还有一种内置的字符串类型，用于表示不可变的字节串。
 
 Syntax
 ----
@@ -153,6 +208,11 @@ declarations are loosely derived from the Pascal tradition to allow more
 comprehensible composability of types.
 
 Here is a complete example Go program that implements a concurrent prime sieve:
+语法
+Go 中的语句和表达式语法借鉴了 C 传统；声明在松散地继承自 Pascal 传统，以允许类型的更可理解的组合。
+
+这是一个完整的 Go 程序示例，实现了并发素数筛选：
+
 
 
   package main
@@ -215,6 +275,19 @@ Lower-case production names are used to identify productions that cannot
 be broken by white space or comments; they are usually tokens. Other
 productions are in CamelCase.
 
+符号
+语法使用扩展巴科斯-瑙尔形式（EBNF）指定。具体来说：
+
+| 分隔替代项（最弱绑定强度）
+() 分组
+[] 指定一个选项（0 或 1 次）
+{} 指定重复（0 到 n 次）
+词法符号用双引号“”括起来（双引号符号写为“”）。
+
+一个产生式可能会在本文档的多个地方引用，但通常在其首次使用时定义。产生式和代码示例缩进显示。
+
+小写产生式名称用于识别不能被空白或注释打断的产生式；它们通常是标记。其他产生式为驼峰命名。
+
 
 Common productions
 ----
@@ -240,16 +313,29 @@ Comments are // to end of line or /* */ without nesting and are treated as white
 Some Unicode characters (e.g., the character U+00E4) may be representable in
 two forms, as a single code point or as two code points.  For simplicity of
 implementation, Go treats these as distinct characters.
+源代码表示
+源代码是以 UTF-8 编码的 Unicode 文本。
 
+标记化遵循通常的规则。源文本区分大小写。
+
+空白字符包括空格、换行符、回车符或制表符。
+
+注释是 // 到行尾或 /* */，不嵌套，并被视为空白字符。
+
+某些 Unicode 字符（例如字符 U+00E4）可能有两种形式表示，作为单个代码点或作为两个代码点。为了简化实现，Go 将它们视为不同的字符。
 
 Characters
 ----
 
-In the grammar we use the notation
+
+In the grammar we use the notation  
 
   utf8_char
 
 to refer to an arbitrary Unicode code point encoded in UTF-8.
+在语法中我们使用符号[当时设计的时候是这个关键字 （utf8_char）]
+来指代以 UTF-8 编码的任意 Unicode 代码点。
+
 
 
 Digits and Letters
@@ -264,6 +350,9 @@ Digits and Letters
 For simplicity, letters and digits are ASCII.  We may in time allow
 Unicode identifiers.
 
+为了简化，字母和数字是 ASCII。我们可能会允许 Unicode 标识符。
+
+
 
 Identifiers
 ----
@@ -277,6 +366,10 @@ type, a function, etc. An identifier must not be a reserved word.
   _x
   ThisIsVariable9
 
+标识符【关键字】
+标识符是程序实体（如变量、类型、函数等）的名称。标识符不能是保留字。
+
+
 
 Types
 ----
@@ -285,6 +378,10 @@ A type specifies the set of values that variables of that type may
 assume, and the operators that are applicable.
 
 There are basic types and composite types.
+类型
+类型指定变量的可能值集合和适用的运算符。
+
+有基本类型和复合类型。
 
 
 Basic types
@@ -295,6 +392,10 @@ type names.  These include traditional arithmetic types, booleans,
 strings, and a special polymorphic type.
 
 The arithmetic types are:
+
+Go 定义了许多基本类型，用其预声明的类型名引用。这些包括传统的算术类型、布尔类型、字符串和一种特殊的多态类型。
+
+算术类型包括：
 
   uint8    the set of all unsigned 8-bit integers
   uint16   the set of all unsigned 16-bit integers
@@ -333,6 +434,19 @@ sized types to maximize portability.
 
 Other basic types include:
 
+此外，Go 声明了几种特定于平台的类型别名：ushort、short、uint、int、ulong、long、float 和 double。这些类型的位宽对于给定平台是“自然的”。例如，在32位架构上，int 通常与 int32 相同，或在64位架构上与 int64 相同。
+
+整数大小定义为 short 至少为16位，int 至少为32位，而 long 至少为64位（以及无符号等价物）。此外，大小关系为 short <= int <= long。同样，float 至少为32位，double 至少为64位，并且大小关系为 float <= double。
+
+此外，“byte”是 uint8 的别名。
+
+还定义了一种算术类型“ptrint”。它是一种无符号整数类型，是机器上存储指针值未解释位的最小自然整数类型。
+
+通常，程序员应使用这些类型而不是显式大小类型，以最大限度地提高可移植性。
+
+其他基本类型包括：
+
+
   bool     the truth values true and false
   string   immutable strings of bytes
   any      polymorphic type
@@ -345,6 +459,15 @@ Strings are described in a later section.
 The polymorphic ``any'' type can represent a value of any type.
 
 TODO: we need a section about any
+
+两个保留字，“true”和“false”，表示相应的布尔常量值。
+
+字符串将在后面描述。
+
+多态的“any”类型可以表示任何类型的值。
+
+TODO：我们需要一个关于 any 的章节
+
 
 
 Numeric literals
@@ -390,6 +513,13 @@ point value that is constrained only upon assignment.
   -44
   +3.24e-7
 
+整数字面量采用通常的 C 形式，除了没有 'U'、'L' 等后缀，并表示整数常量。字符字面量也是整数常量。同样，浮点字面量也类似于 C，没有后缀且仅为十进制。
+
+整数常量表示任意精度的抽象整数值。只有当将整数常量（或由整数常量组成的算术表达式）绑定到类型化变量或常量时，才需要适应特定大小——即变量的类型大小。换句话说，整数常量及其算术运算不受溢出限制；只有整数常量（和常量表达式）的最终确定化才会导致溢出。如果常量或表达式的值不能在接收变量或常量的类型范围内正确表示，则这是一个错误。扩展来说，如果整数可以准确表示为浮点常量（如 1 而非 1.0），则也可以使用整数，反之亦然（如 1e9 而非 1000000000）。
+
+浮点字面量也表示一个抽象的理想浮点值，只有在赋值时才受约束。
+
+
 
 The string type
 ----
@@ -414,6 +544,18 @@ Strings behave like arrays of bytes, with the following properties:
   just array of bytes) by a conversion
     a [3]byte; a[0] = 'a'; a[1] = 'b'; a[2] = 'c';  string(a) == "abc";
 
+字符串类型表示字符串值（字符串）的集合。字符串行为类似于字节数组，具有以下属性：
+
+它们是不可变的：创建后，无法更改字符串的内容。
+没有内部指针：创建指向字符串内部元素的指针是非法的。
+它们可以被索引：给定字符串 "s1"，"s1[i]" 是一个字节值。
+它们可以连接：给定字符串 "s1" 和 "s2"，"s1 + s2" 是一个值，将 "s1" 和 "s2" 的元素按顺序组合。
+已知长度：字符串 "s1" 的长度可以通过函数/运算符 "len(s1)" 获取。字符串的长度是其中的字节数。与 C 不同，没有终止的 NUL 字节。
+创建1：可以通过转换从整数值创建字符串；结果是包含该代码点的 UTF-8 编码的字符串。
+"string('x')" 产生 "x"；"string(0x1234)" 产生等价于 "\u1234"
+创建2：可以通过转换从整数值数组（可能只是字节数组）创建字符串
+a [3]byte; a[0] = 'a'; a[1] = 'b'; a[2] = 'c'; string(a) == "abc"
+
 
 Character and string literals
 ----
@@ -428,6 +570,14 @@ following differences:
 
 This section is precise but can be skipped on first reading. The rules are:
 
+字符和字符串字面量与 C 几乎相同，但有以下区别：
+
+编码是 UTF-8
+存在 `` 字符串；它们不解释反斜杠
+八进制字符转义总是3位数（"\077" 而不是 "\77"）
+十六进制字符转义总是2位数（"\x07" 而不是 "\x7"）
+本节内容精确，但第一次阅读时可以跳过。规则如下：
+
   char_lit = "'" ( unicode_value | byte_value ) "'" .
   unicode_value = utf8_char | little_u_value | big_u_value | escaped_char .
   byte_value = octal_byte_value | hex_byte_value .
@@ -439,6 +589,7 @@ This section is precise but can be skipped on first reading. The rules are:
   escaped_char = "\" ( "a" | "b" | "f" | "n" | "r" | "t" | "v" | "\" | "'" | """ ) .
 
 A unicode_value takes one of four forms:
+Unicode 值有四种形式：
 
 * The UTF-8 encoding of a Unicode code point.  Since Go source
 text is in UTF-8, this is the obvious translation from input
@@ -526,6 +677,8 @@ a combining form involving an accent and a letter, the result will be
 an error if placed in a character literal (it is not a single code
 point), and will appear as two code points if placed in a string
 literal.
+
+
 
 
 More about types
